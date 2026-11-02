@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Grenier - Organisation & Rangement 3D</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js et OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Scanner QR Code HTML5 -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden bg-slate-950">
+
+    <!-- Navbar principale -->
+    <header class="glass-panel border-b border-slate-800 z-20 shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo / Titre -->
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
+                        <i data-lucide="box" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold text-white tracking-wide">Mon Grenier 3D</h1>
+                        <p class="text-xs text-slate-400">Dimensions : 10m × 4m • Trappe d'accès centralisée</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="hidden md:flex space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                    <button onclick="switchTab('3d')" id="tab-btn-3d" class="tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all text-white bg-amber-600 shadow-md">
+                        <i data-lucide="box" class="w-4 h-4"></i>
+                        <span>Vue 3D Grenier</span>
+                    </button>
+                    <button onclick="switchTab('search')" id="tab-btn-search" class="tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                        <span>Recherche d'Objets</span>
+                    </button>
+                    <button onclick="switchTab('plan')" id="tab-btn-plan" class="tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+                        <i data-lucide="grid" class="w-4 h-4"></i>
+                        <span>Plan 2D & Placement</span>
+                    </button>
+                    <button onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-lg transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        <span>Gestion des Stocks</span>
+                    </button>
+                </nav>
+
+                <!-- Action Rapide -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="openScannerModal()" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 px-3 py-2 rounded-lg text-xs font-semibold transition-all shadow-md" title="Scanner un QR code avec la caméra">
+                        <i data-lucide="qr-code" class="w-4 h-4 text-amber-400"></i>
+                        <span class="hidden sm:inline">Scanner QR</span>
+                    </button>
+                    <button onclick="exportDataJSON()" class="hidden sm:flex items-center space-x-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 rounded-lg text-xs transition-all" title="Exporter les données">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Exporter</span>
+                    </button>
+                    <button onclick="openAddModal()" class="flex items-center space-x-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold px-4 py-2 rounded-lg text-sm transition-all shadow-lg shadow-amber-500/20 active:scale-95">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Nouvelle Caisse</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Mobile Nav -->
+        <div class="md:hidden flex border-t border-slate-800 bg-slate-900 overflow-x-auto">
+            <button onclick="switchTab('3d')" class="flex-1 py-3 px-2 text-center text-xs font-medium text-amber-400 border-b-2 border-amber-500 flex flex-col items-center gap-1">
+                <i data-lucide="box" class="w-4 h-4"></i> Vue 3D
+            </button>
+            <button onclick="switchTab('search')" class="flex-1 py-3 px-2 text-center text-xs font-medium text-slate-400 flex flex-col items-center gap-1">
+                <i data-lucide="search" class="w-4 h-4"></i> Recherche
+            </button>
+            <button onclick="switchTab('plan')" class="flex-1 py-3 px-2 text-center text-xs font-medium text-slate-400 flex flex-col items-center gap-1">
+                <i data-lucide="grid" class="w-4 h-4"></i> Plan 2D
+            </button>
+            <button onclick="switchTab('stats')" class="flex-1 py-3 px-2 text-center text-xs font-medium text-slate-400 flex flex-col items-center gap-1">
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Stocks
+            </button>
+        </div>
+    </header>
+
+    <!-- Zone principale de Contenu -->
+    <main class="flex-1 relative overflow-hidden">
+
+        <!-- TAB 1 : VUE 3D -->
+        <section id="tab-3d" class="tab-content w-full h-full relative">
+            <div id="canvas-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+            <!-- Overlay d'instructions Vue 3D -->
+            <div class="absolute top-4 left-4 glass-panel p-4 rounded-xl text-xs space-y-2 max-w-xs shadow-xl hidden sm:block pointer-events-none">
+                <div class="font-semibold text-amber-400 flex items-center gap-2">
+                    <i data-lucide="mouse-pointer" class="w-4 h-4"></i> Navigation Grenier
+                </div>
+                <p class="text-slate-300">• <b>Clic Gauche + Glisser :</b> Pivoter la caméra</p>
+                <p class="text-slate-300">• <b>Clic Droit + Glisser :</b> Déplacer la vue</p>
+                <p class="text-slate-300">• <b>Molette :</b> Zoom / Dézoom</p>
+                <p class="text-slate-300">• <b>Clic sur Caisse :</b> Afficher le contenu</p>
+                <p class="text-slate-300">• <b>Clic sur Emplacement Vert :</b> Ajouter une caisse</p>
+            </div>
+
+            <!-- Bouton Reset Caméra -->
+            <button onclick="resetCamera()" class="absolute bottom-6 right-6 bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 p-3 rounded-full shadow-lg transition-all flex items-center justify-center" title="Réinitialiser la vue">
+                <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Légende -->
+            <div class="absolute bottom-6 left-6 glass-panel p-3 rounded-xl text-xs flex flex-wrap gap-4 items-center">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded bg-amber-600 inline-block border border-amber-400"></span>
+                    <span class="text-slate-300">Caisse (Empilable)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded bg-emerald-500/50 border border-emerald-400 inline-block"></span>
+                    <span class="text-slate-300">Emplacement libre</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded bg-rose-950 border border-rose-600 inline-block"></span>
+                    <span class="text-slate-300">Trappe d'accès (Indisponible)</span>
+                </div>
+                <div class="flex items-center gap-2 border-l border-slate-700 pl-3">
+                    <span class="text-amber-400 font-bold">X</span>
+                    <span class="text-slate-400">: Longueur (0-9)</span>
+                    <span class="text-red-400 font-bold ml-2">Y</span>
+                    <span class="text-slate-400">: Largeur (0-3)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2 : RECHERCHE D'OBJETS -->
+        <section id="tab-search" class="tab-content w-full h-full p-4 md:p-8 overflow-y-auto hidden">
+            <div class="max-w-5xl mx-auto space-y-6">
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="search" class="text-amber-400"></i>
+                        Rechercher un objet dans le grenier
+                    </h2>
+                    <p class="text-sm text-slate-400">Entrez le nom d'un objet, un membre de la famille ou un mot-clé pour retrouver directement la caisse correspondante.</p>
+                    
+                    <div class="relative">
+                        <input type="text" id="search-input" oninput="handleSearch()" placeholder="Ex: Décorations sapin, perceuse, bottes de neige, mangas..." 
+                               class="w-full bg-slate-900/90 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all text-base">
+                        <i data-lucide="search" class="w-5 h-5 absolute left-4 top-3.5 text-slate-500"></i>
+                    </div>
+
+                    <!-- Filtres étendus : Catégorie, Niveau d'empilage & Membre -->
+                    <div class="space-y-3 pt-2">
+                        <div>
+                            <span class="text-xs text-slate-400 font-semibold block mb-1">Catégorie :</span>
+                            <div class="flex flex-wrap gap-2" id="category-filter-buttons"></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+                            <div>
+                                <label class="text-xs text-slate-400 font-semibold block mb-1">Filtre par Niveau d'Empilage :</label>
+                                <select id="filter-level-select" onchange="handleSearch()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                                    <option value="Tous">Tous les niveaux</option>
+                                    <option value="0">Au sol (Niveau 0)</option>
+                                    <option value="1">1er étage (Niveau 1)</option>
+                                    <option value="2">2ème étage (Niveau 2)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 font-semibold block mb-1">Filtre par Responsable :</label>
+                                <select id="filter-member-select" onchange="handleSearch()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-slate-200 focus:border-amber-500 focus:outline-none">
+                                    <option value="Tous">Tous les membres</option>
+                                    <option value="Charles">Charles</option>
+                                    <option value="Henri">Henri</option>
+                                    <option value="Blanche">Blanche</option>
+                                    <option value="Hugues">Hugues</option>
+                                    <option value="Isabelle">Isabelle</option>
+                                    <option value="Olivier">Olivier</option>
+                                    <option value="Pierre">Pierre</option>
+                                    <option value="Souazic">Souazic</option>
+                                    <option value="Erell">Erell</option>
+                                    <option value="Bleuenn">Bleuenn</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center text-sm text-slate-400 px-1">
+                        <span id="search-results-count">Résultats trouvés</span>
+                    </div>
+
+                    <div id="search-results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3 : PLAN 2D & PLACEMENT -->
+        <section id="tab-plan" class="tab-content w-full h-full p-4 md:p-8 overflow-y-auto hidden">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <div class="glass-panel p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i data-lucide="grid" class="text-amber-400"></i>
+                            Plan du sol du Grenier (Vue de dessus)
+                        </h2>
+                        <p class="text-sm text-slate-400">Grille de 10m x 4m avec axes X et Y. <b>Astuce :</b> Vous pouvez glisser-déposer une caisse pour la déplacer vers un autre emplacement !</p>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs">
+                        <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-amber-600 border border-amber-400"></span> Occupé</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-slate-800 border border-slate-700"></span> Libre</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded bg-rose-950 border border-rose-700"></span> Trappe</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl flex justify-center items-center overflow-x-auto">
+                    <div class="min-w-[760px] flex flex-col items-center">
+                        
+                        <!-- Axe X Haut -->
+                        <div class="flex items-center gap-2 mb-2 w-full pl-12 pr-2">
+                            <span class="text-amber-400 font-bold text-xs w-6 text-center">X →</span>
+                            <div class="grid grid-cols-10 gap-2 flex-1 text-center font-mono text-xs text-amber-400 font-semibold">
+                                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3 w-full">
+                            <!-- Axe Y Gauche -->
+                            <div class="flex flex-col justify-around text-xs font-mono text-red-400 font-bold py-2 w-8 text-right">
+                                <span class="flex items-center justify-end gap-1"><span class="text-[10px] text-slate-500">Y</span> 0</span>
+                                <span class="flex items-center justify-end gap-1"><span class="text-[10px] text-slate-500">Y</span> 1</span>
+                                <span class="flex items-center justify-end gap-1"><span class="text-[10px] text-slate-500">Y</span> 2</span>
+                                <span class="flex items-center justify-end gap-1"><span class="text-[10px] text-slate-500">Y</span> 3</span>
+                            </div>
+
+                            <!-- Grille 2D -->
+                            <div id="grid-2d-container" class="grid grid-cols-10 gap-2 flex-1 bg-slate-950 p-4 rounded-xl border border-slate-800"></div>
+                        </div>
+
+                        <!-- Axe X Bas -->
+                        <div class="flex items-center gap-2 mt-2 w-full pl-12 pr-2">
+                            <span class="text-amber-400 font-bold text-xs w-6 text-center">X →</span>
+                            <div class="grid grid-cols-10 gap-2 flex-1 text-center font-mono text-xs text-amber-400/60">
+                                <span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="plan-slot-details" class="glass-panel p-6 rounded-2xl hidden"></div>
+            </div>
+        </section>
+
+        <!-- TAB 4 : STATISTIQUES ET GESTION GENERALE -->
+        <section id="tab-stats" class="tab-content w-full h-full p-4 md:p-8 overflow-y-auto hidden">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-amber-500">
+                        <div class="text-xs text-slate-400 font-medium">Caisses Stockées</div>
+                        <div class="text-2xl font-bold text-white mt-1" id="kpi-total-crates">0</div>
+                        <div class="text-xs text-slate-500 mt-1">Nombre total de caisses</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-emerald-500">
+                        <div class="text-xs text-slate-400 font-medium">Taux d'Occupation</div>
+                        <div class="text-2xl font-bold text-white mt-1" id="kpi-occupancy">0%</div>
+                        <div class="w-full bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+                            <div id="kpi-occupancy-bar" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-blue-500">
+                        <div class="text-xs text-slate-400 font-medium">Total des Objets</div>
+                        <div class="text-2xl font-bold text-white mt-1" id="kpi-total-items">0</div>
+                        <div class="text-xs text-slate-500 mt-1">Articles répertoriés</div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-l-purple-500">
+                        <div class="text-xs text-slate-400 font-medium">Emplacements Libres (Sol)</div>
+                        <div class="text-2xl font-bold text-white mt-1" id="kpi-free-slots">0</div>
+                        <div class="text-xs text-slate-500 mt-1">Hors zone de trappe</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-panel p-6 rounded-2xl space-y-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="pie-chart" class="text-amber-400"></i>
+                            Répartition par Catégorie
+                        </h3>
+                        <div id="category-breakdown-list" class="space-y-3"></div>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl space-y-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="history" class="text-amber-400"></i>
+                            Journal des Mouvements
+                        </h3>
+                        <div id="activity-log-list" class="space-y-3 max-h-80 overflow-y-auto pr-1"></div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center justify-between">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="list" class="text-amber-400"></i>
+                            Inventaire Complet des Caisses
+                        </span>
+                        <div class="flex gap-2">
+                            <button onclick="exportDataJSON()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition-all flex items-center gap-1">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Export JSON
+                            </button>
+                            <button onclick="exportDataCSV()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition-all flex items-center gap-1">
+                                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Export CSV
+                            </button>
+                        </div>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="text-xs text-slate-400 uppercase bg-slate-900/80 border-b border-slate-800">
+                                <tr>
+                                    <th class="py-3 px-4">Code</th>
+                                    <th class="py-3 px-4">Nom de la Caisse</th>
+                                    <th class="py-3 px-4">Emplacement</th>
+                                    <th class="py-3 px-4">Catégorie</th>
+                                    <th class="py-3 px-4">Objets</th>
+                                    <th class="py-3 px-4">Responsable</th>
+                                    <th class="py-3 px-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body" class="divide-y divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL : DETAILS CAISSE -->
+    <div id="modal-crate-details" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel max-w-lg w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative space-y-5 transform transition-all">
+            <button onclick="closeCrateModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-start gap-4">
+                <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
+                    <i data-lucide="archive" class="w-8 h-8"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="modal-crate-code" class="text-xs font-mono bg-slate-800 text-amber-400 px-2 py-0.5 rounded border border-slate-700">CAISSE-01</span>
+                        <span id="modal-crate-level-badge" class="text-xs font-semibold bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-500/30">Sol (Niveau 0)</span>
+                    </div>
+                    <h3 id="modal-crate-title" class="text-xl font-bold text-white mt-1">Titre de la caisse</h3>
+                    <p id="modal-crate-location" class="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-500"></i> Emplacement X: 2, Y: 1
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-slate-500 block">Catégorie</span>
+                    <span id="modal-crate-category" class="text-slate-200 font-semibold mt-0.5 block">Décorations</span>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                    <span class="text-slate-500 block">Rangé par</span>
+                    <span id="modal-crate-member" class="text-slate-200 font-semibold mt-0.5 block">Famille</span>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-2">Contenu de la caisse</h4>
+                <ul id="modal-crate-items" class="bg-slate-900/90 rounded-xl p-3 border border-slate-800 space-y-2 max-h-48 overflow-y-auto text-sm text-slate-200 divide-y divide-slate-800/50"></ul>
+            </div>
+
+            <div id="modal-crate-notes-container" class="bg-slate-900/50 p-3 rounded-xl text-xs text-slate-400 italic">
+                <span class="font-semibold not-italic text-slate-300">Note :</span> <span id="modal-crate-notes">...</span>
+            </div>
+
+            <div class="flex justify-between items-center pt-2 border-t border-slate-800">
+                <button onclick="deleteCurrentCrate()" class="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-3 py-2 rounded-lg transition-all flex items-center gap-1">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Supprimer
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="printCrateLabel()" class="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold px-3 py-2 rounded-lg transition-all flex items-center gap-1.5">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i> Étiquette & QR
+                    </button>
+                    <button onclick="editCurrentCrate()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg transition-all">
+                        Modifier
+                    </button>
+                    <button onclick="closeCrateModal()" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL IMPRESSION ETIQUETTE & QR CODE -->
+    <div id="modal-qr-print" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white text-slate-900 max-w-md w-full rounded-2xl p-6 shadow-2xl relative space-y-4 font-sans">
+            <button onclick="closePrintModal()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-900 p-1 rounded-lg">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div id="printable-label-content" class="p-4 border-2 border-dashed border-slate-300 rounded-xl space-y-4 bg-slate-50">
+                <div class="flex justify-between items-start border-b border-slate-200 pb-3">
+                    <div>
+                        <span class="text-xs font-mono font-bold bg-amber-500 text-slate-950 px-2 py-0.5 rounded" id="print-code">C-01</span>
+                        <h2 class="text-lg font-bold text-slate-900 mt-1" id="print-title">Nom Caisse</h2>
+                        <p class="text-xs text-slate-600" id="print-location">Emplacement : X:0, Y:0 (Niv. 0)</p>
+                    </div>
+                    <!-- QR Code SVG Simulé / SVG direct -->
+                    <div class="w-20 h-20 bg-white p-1 border border-slate-300 rounded shrink-0 flex items-center justify-center" id="print-qr-code"></div>
+                </div>
+
+    <!-- MODAL SCANNER QR CODE -->
+    <div id="modal-qr-scanner" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative space-y-4">
+            <button onclick="closeScannerModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                    <i data-lucide="qr-code" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Scanner un QR Code</h3>
+                    <p class="text-xs text-slate-400">Pointez la caméra vers l'étiquette de la caisse</p>
+                </div>
+            </div>
+
+            <!-- Caméra & Zone de scan -->
+            <div id="qr-reader-container" class="overflow-hidden rounded-xl bg-slate-950 border border-slate-800 min-h-[260px] flex items-center justify-center text-slate-500 text-xs">
+                <div id="qr-reader" class="w-full"></div>
+            </div>
+
+            <div id="scanner-feedback" class="text-xs text-center text-slate-400 min-h-[20px]">
+                Autorisez l'accès à la caméra si nécessaire.
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeScannerModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold py-2.5 rounded-lg transition-all">
+                    Fermer le scanner
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : AJOUTER / MODIFIER UNE CAISSE -->
+    <div id="modal-add-crate" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel max-w-lg w-full rounded-2xl p-6 border border-slate-700 shadow-2xl relative space-y-4 max-h-[90vh] overflow-y-auto">
+            <button onclick="closeAddModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <h3 id="form-modal-title" class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="box" class="text-amber-400"></i>
+                Ajouter une nouvelle caisse
+            </h3>
+
+            <form id="crate-form" onsubmit="saveCrateForm(event)" class="space-y-4 text-sm">
+                <input type="hidden" id="form-crate-id" value="">
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Nom de la caisse / Description globale *</label>
+                    <input type="text" id="form-title" required placeholder="Ex: Outillage Jardinage & Bricolage"
+                           class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Catégorie *</label>
+                        <select id="form-category" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                            <option value="Outillage">Outillage</option>
+                            <option value="Décorations">Décorations</option>
+                            <option value="Vêtements">Vêtements</option>
+                            <option value="Souvenirs">Souvenirs</option>
+                            <option value="Livres">Livres</option>
+                            <option value="Électronique">Électronique</option>
+                            <option value="Camping">Camping</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Type de Contenant (Rendu 3D) *</label>
+                        <select id="form-type" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                            <option value="Carton">📦 Carton classique</option>
+                            <option value="Plastique">🧊 Bac plastique transparent</option>
+                            <option value="Bois">🪵 Malle en bois</option>
+                            <option value="Valise">🧳 Valise / Sac de voyage</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Rangé par *</label>
+                        <select id="form-member" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                            <option value="Charles">Charles</option>
+                            <option value="Henri">Henri</option>
+                            <option value="Blanche">Blanche</option>
+                            <option value="Hugues">Hugues</option>
+                            <option value="Isabelle">Isabelle</option>
+                            <option value="Olivier">Olivier</option>
+                            <option value="Pierre">Pierre</option>
+                            <option value="Souazic">Souazic</option>
+                            <option value="Erell">Erell</option>
+                            <option value="Bleuenn">Bleuenn</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Couleur (Rendu 3D)</label>
+                        <div class="flex gap-2 items-center">
+                            <input type="color" id="form-color" value="#d97706" class="bg-transparent cursor-pointer w-10 h-9 rounded border border-slate-700">
+                            <span class="text-xs text-slate-400">Couleur 3D</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Emplacement X (0-9) *</label>
+                        <input type="number" id="form-slot-x" min="0" max="9" required onchange="updateLevelOptions()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Emplacement Y (0-3) *</label>
+                        <input type="number" id="form-slot-y" min="0" max="3" required onchange="updateLevelOptions()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Étage / Niveau *</label>
+                        <select id="form-level" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                            <option value="0">Au sol (Niveau 0)</option>
+                            <option value="1">Empilé (Niveau 1)</option>
+                            <option value="2">Empilé haut (Niveau 2)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Liste détaillée des objets (un par ligne)</label>
+                    <textarea id="form-items" rows="4" placeholder="1x Perceuse sans fil&#10;2x Boîtes de vis&#10;1x Marteau de charpentier"
+                              class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none font-mono text-xs"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Remarques ou précisions</label>
+                    <input type="text" id="form-notes" placeholder="Ex: Fragile, poser sur le dessus"
+                           class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:border-amber-500 focus:outline-none">
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-lg text-slate-400 hover:text-white text-xs">
+                        Annuler
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/20">
+                        Enregistrer la caisse
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT DE LOGIQUE & THREE.JS -->
+    <script>
+        // --- CONSTANTES & TRAPPE D'ACCES ---
+        const GRID_X = 10;
+        const GRID_Y = 4;
+        const SLOT_SIZE = 1.0;
+        const CRATE_HEIGHT = 0.55;
+
+        const TRAP_SLOTS = [
+            { x: 4, y: 2 }, { x: 4, y: 3 },
+            { x: 5, y: 2 }, { x: 5, y: 3 }
+        ];
+
+        function isTrapSlot(x, y) {
+            return TRAP_SLOTS.some(slot => slot.x === x && slot.y === y);
+        }
+
+        // --- DONNEES DE DEPART ---
+        const INITIAL_CRATES = [
+            {
+                id: 'crate-1',
+                code: 'C-01',
+                title: 'Décorations de Noël & Guirlandes',
+                category: 'Décorations',
+                type: 'Carton',
+                x: 1, y: 1, level: 0,
+                color: '#ef4444',
+                member: 'Charles',
+                notes: 'Boîte très fragile avec boules en verre',
+                items: ['1x Sapin artificiel 180cm', '4x Guirlandes lumineuses LED', '24x Boules de Noël rouges']
+            },
+            {
+                id: 'crate-1-b',
+                code: 'C-01B',
+                title: 'Guirlandes Extérieures & Crèche',
+                category: 'Décorations',
+                type: 'Carton',
+                x: 1, y: 1, level: 1,
+                color: '#f87171',
+                member: 'Charles',
+                notes: 'Posée au-dessus de la caisse C-01',
+                items: ['1x Crèche en bois', '2x Santons', '3x Projecteurs de façade']
+            },
+            {
+                id: 'crate-2',
+                code: 'C-02',
+                title: 'Outillage Bricolage & Electroportatif',
+                category: 'Outillage',
+                type: 'Bois',
+                x: 3, y: 2, level: 0,
+                color: '#3b82f6',
+                member: 'Olivier',
+                notes: 'Lourde ! Malle bois renforcée',
+                items: ['1x Perceuse Bosch', '1x Boîte de forets', '1x Ponceuse', '2x Clés à molette']
+            },
+            {
+                id: 'crate-3',
+                code: 'C-03',
+                title: 'Souvenirs Enfance & Photos',
+                category: 'Souvenirs',
+                type: 'Plastique',
+                x: 9, y: 4, level: 0,
+                color: '#ec4899',
+                member: 'Isabelle',
+                notes: 'Bac plastique étanche',
+                items: ['5x Albums photos de famille', '1x Doudou', '3x Carnets d\'école']
+            },
+            {
+                id: 'crate-4',
+                code: 'C-04',
+                title: 'Matériel de Camping',
+                category: 'Camping',
+                type: 'Valise',
+                x: 7, y: 3, level: 0,
+                color: '#10b981',
+                member: 'Pierre',
+                notes: 'Grand sac et matériel été',
+                items: ['1x Tente 3 places', '2x Sacs de couchage', '1x Réchaud à gaz']
+            }
+        ];
+
+        const LOG_ENTRIES = [
+            { time: 'Aujourd\'hui 14:30', text: 'Empilage : Caisse C-01B posée au niveau 1 sur C-01.' },
+            { time: 'Hier 11:15', text: 'Trappe d\'accès centralisée configurée (X:4-5, Y:2-3).' }
+        ];
+
+        let crates = [];
+        let activityLogs = [];
+        let activeCrateId = null;
+        let selected2DSlot = null;
+        let draggedCrateId = null;
+
+        // --- CHARGEMENT INITIAL ---
+        function initData() {
+            const localData = localStorage.getItem('grenier_crates_data_v4');
+            if (localData) {
+                try { crates = JSON.parse(localData); } catch (e) { crates = INITIAL_CRATES; }
+            } else {
+                crates = INITIAL_CRATES;
+                saveData();
+            }
+
+            const localLogs = localStorage.getItem('grenier_logs_data_v4');
+            if (localLogs) {
+                try { activityLogs = JSON.parse(localLogs); } catch(e) { activityLogs = LOG_ENTRIES; }
+            } else {
+                activityLogs = LOG_ENTRIES;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('grenier_crates_data_v4', JSON.stringify(crates));
+            localStorage.setItem('grenier_logs_data_v4', JSON.stringify(activityLogs));
+        }
+
+        function addLogEntry(text) {
+            const now = new Date();
+            const timeStr = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            activityLogs.unshift({ time: timeStr, text: text });
+            if (activityLogs.length > 20) activityLogs.pop();
+            saveData();
+        }
+
+        // --- THREE.JS SCENE AVEC RENDUS DIFFERENCIES DE TYPES DE CAISSES ---
+        let scene, camera, renderer, controls;
+        let crateMeshes = [];
+        let slotMeshes = [];
+        let raycaster, mouse;
+
+        function createTextSprite(text, color = '#f59e0b', fontSize = 42) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = color;
+            ctx.font = `Bold ${fontSize}px Inter, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 64, 64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(0.6, 0.6, 1);
+            return sprite;
+        }
+
+        function buildAtticStructure() {
+            // Sol Parquet Bois
+            const floorGeo = new THREE.PlaneGeometry(GRID_X, GRID_Y);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x291d18, 
+                roughness: 0.85,
+                metalness: 0.1 
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Repères d'axes X et Y
+            const axisGroup = new THREE.Group();
+
+            for (let x = 0; x < GRID_X; x++) {
+                const posX = -GRID_X / 2 + x * SLOT_SIZE + SLOT_SIZE / 2;
+                const spriteFront = createTextSprite(`X:${x}`, '#f59e0b');
+                spriteFront.position.set(posX, 0.05, GRID_Y / 2 + 0.35);
+                axisGroup.add(spriteFront);
+            }
+
+            for (let y = 0; y < GRID_Y; y++) {
+                const posZ = -GRID_Y / 2 + y * SLOT_SIZE + SLOT_SIZE / 2;
+                const spriteLeft = createTextSprite(`Y:${y}`, '#f87171');
+                spriteLeft.position.set(-GRID_X / 2 - 0.45, 0.05, posZ);
+                axisGroup.add(spriteLeft);
+            }
+
+            scene.add(axisGroup);
+
+            // Trappe d'accès 3D (X: 4-5, Y: 2-3)
+            const trapWidth = SLOT_SIZE * 2;
+            const trapHeight = SLOT_SIZE * 2;
+            const trapX = -GRID_X / 2 + 4 * SLOT_SIZE + trapWidth / 2;
+            const trapZ = -GRID_Y / 2 + 2 * SLOT_SIZE + trapHeight / 2;
+
+            const frameGeo = new THREE.BoxGeometry(trapWidth + 0.1, 0.05, trapHeight + 0.1);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x1c100b, roughness: 0.9 });
+            const frameMesh = new THREE.Mesh(frameGeo, frameMat);
+            frameMesh.position.set(trapX, 0.02, trapZ);
+            scene.add(frameMesh);
+
+            const holeGeo = new THREE.PlaneGeometry(trapWidth, trapHeight);
+            const holeMat = new THREE.MeshBasicMaterial({ color: 0x020617 });
+            const holeMesh = new THREE.Mesh(holeGeo, holeMat);
+            holeMesh.rotation.x = -Math.PI / 2;
+            holeMesh.position.set(trapX, 0.03, trapZ);
+            scene.add(holeMesh);
+
+            // Pignons et Toit
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+            const pignonShape = new THREE.Shape();
+            pignonShape.moveTo(-GRID_Y / 2, 0);
+            pignonShape.lineTo(GRID_Y / 2, 0);
+            pignonShape.lineTo(0, 3.2);
+            pignonShape.closePath();
+
+            const pignonGeo = new THREE.ShapeGeometry(pignonShape);
+
+            const pignonG = new THREE.Mesh(pignonGeo, wallMat);
+            pignonG.position.x = -GRID_X / 2;
+            pignonG.rotation.y = Math.PI / 2;
+            scene.add(pignonG);
+
+            const pignonD = new THREE.Mesh(pignonGeo, wallMat);
+            pignonD.position.x = GRID_X / 2;
+            pignonD.rotation.y = -Math.PI / 2;
+            scene.add(pignonD);
+
+            // Charpente filaire
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.7 });
+            const mainBeam = new THREE.Mesh(new THREE.BoxGeometry(GRID_X, 0.12, 0.12), woodMat);
+            mainBeam.position.set(0, 3.2, 0);
+            scene.add(mainBeam);
+        }
+
+        function render3DObjects() {
+            crateMeshes.forEach(m => scene.remove(m));
+            slotMeshes.forEach(m => scene.remove(m));
+            crateMeshes = [];
+            slotMeshes = [];
+
+            const slotGeo = new THREE.PlaneGeometry(SLOT_SIZE * 0.85, SLOT_SIZE * 0.85);
+
+            for (let x = 0; x < GRID_X; x++) {
+                for (let y = 0; y < GRID_Y; y++) {
+                    const isTrap = isTrapSlot(x, y);
+                    const cratesAtSlot = crates.filter(c => c.x === x && c.y === y);
+                    const isOccupied = cratesAtSlot.length > 0;
+
+                    const posX = -GRID_X / 2 + x * SLOT_SIZE + SLOT_SIZE / 2;
+                    const posZ = -GRID_Y / 2 + y * SLOT_SIZE + SLOT_SIZE / 2;
+
+                    let slotColor = 0x10b981;
+                    let slotOpacity = 0.25;
+
+                    if (isTrap) {
+                        slotColor = 0xf43f5e;
+                        slotOpacity = 0.4;
+                    } else if (isOccupied) {
+                        slotColor = 0x334155;
+                        slotOpacity = 0.15;
+                    }
+
+                    const slotMat = new THREE.MeshBasicMaterial({
+                        color: slotColor,
+                        transparent: true,
+                        opacity: slotOpacity,
+                        side: THREE.DoubleSide
+                    });
+
+                    const slotMesh = new THREE.Mesh(slotGeo, slotMat);
+                    slotMesh.position.set(posX, 0.01, posZ);
+                    slotMesh.rotation.x = -Math.PI / 2;
+                    slotMesh.userData = { type: 'slot', gridX: x, gridY: y, isTrap: isTrap, currentStackHeight: cratesAtSlot.length };
+
+                    scene.add(slotMesh);
+                    slotMeshes.push(slotMesh);
+                }
+            }
+
+            // RENDU DES TYPES DE CAISSES (Carton, Plastique, Bois, Valise)
+            crates.forEach(crate => {
+                const posX = -GRID_X / 2 + crate.x * SLOT_SIZE + SLOT_SIZE / 2;
+                const posZ = -GRID_Y / 2 + crate.y * SLOT_SIZE + SLOT_SIZE / 2;
+                const level = crate.level || 0;
+                const posY = level * CRATE_HEIGHT;
+
+                const crateGroup = new THREE.Group();
+                const crateType = crate.type || 'Carton';
+
+                let crateGeo, crateMat;
+
+                if (crateType === 'Plastique') {
+                    // Bac Plastique semi-transparent
+                    crateGeo = new THREE.BoxGeometry(0.75, CRATE_HEIGHT - 0.03, 0.75);
+                    crateMat = new THREE.MeshPhysicalMaterial({
+                        color: crate.color || '#3b82f6',
+                        transparent: true,
+                        opacity: 0.65,
+                        roughness: 0.1,
+                        transmission: 0.5
+                    });
+                } else if (crateType === 'Bois') {
+                    // Malle en bois avec lattes
+                    crateGeo = new THREE.BoxGeometry(0.78, CRATE_HEIGHT - 0.02, 0.78);
+                    crateMat = new THREE.MeshStandardMaterial({
+                        color: crate.color || '#78350f',
+                        roughness: 0.9,
+                        metalness: 0.2
+                    });
+                } else if (crateType === 'Valise') {
+                    // Valise arrondie
+                    crateGeo = new THREE.BoxGeometry(0.7, CRATE_HEIGHT - 0.05, 0.65);
+                    crateMat = new THREE.MeshStandardMaterial({
+                        color: crate.color || '#1e293b',
+                        roughness: 0.4,
+                        metalness: 0.3
+                    });
+                } else {
+                    // Carton standard
+                    crateGeo = new THREE.BoxGeometry(0.75, CRATE_HEIGHT - 0.02, 0.75);
+                    crateMat = new THREE.MeshStandardMaterial({
+                        color: crate.color || '#d97706',
+                        roughness: 0.7
+                    });
+                }
+
+                const crateMesh = new THREE.Mesh(crateGeo, crateMat);
+                crateMesh.position.y = CRATE_HEIGHT / 2;
+                crateMesh.castShadow = true;
+                crateMesh.receiveShadow = true;
+                crateGroup.add(crateMesh);
+
+                // Contours
+                const edgeGeo = new THREE.EdgesGeometry(crateGeo);
+                const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1.5 });
+                const wireframe = new THREE.LineSegments(edgeGeo, edgeMat);
+                wireframe.position.y = CRATE_HEIGHT / 2;
+                crateGroup.add(wireframe);
+
+                crateGroup.position.set(posX, posY, posZ);
+                crateGroup.userData = { type: 'crate', crateData: crate };
+
+                scene.add(crateGroup);
+                crateMeshes.push(crateGroup);
+            });
+        }
+
+        function getMaxLevelForSlot(y) {
+            return (y === 0 || y === (GRID_Y - 1)) ? 2 : 3;
+        }
+
+        function onDocumentPointerDown(event) {
+            if (event.button !== 0) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            const crateIntersects = raycaster.intersectObjects(crateMeshes, true);
+            if (crateIntersects.length > 0) {
+                let obj = crateIntersects[0].object;
+                while (obj.parent && obj.userData.type !== 'crate') {
+                    obj = obj.parent;
+                }
+                if (obj.userData && obj.userData.crateData) {
+                    openCrateDetails(obj.userData.crateData);
+                    return;
+                }
+            }
+
+            const slotIntersects = raycaster.intersectObjects(slotMeshes);
+            if (slotIntersects.length > 0) {
+                const slot = slotIntersects[0].object;
+                if (slot.userData && slot.userData.type === 'slot') {
+                    if (slot.userData.isTrap) {
+                        alert("Cet emplacement correspond à la TRAPPE D'ACCÈS du grenier.");
+                        return;
+                    }
+                    
+                    const nextLevel = slot.userData.currentStackHeight;
+                    if (nextLevel >= getMaxLevelForSlot(slot.userData.gridY)) {
+                        alert(`Impossible d'empiler davantage ici : hauteur maximale atteinte.`);
+                        return;
+                    }
+                    openAddModal(slot.userData.gridX, slot.userData.gridY, nextLevel);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 7, 10);
+            controls.target.set(0, 0.5, 0);
+            controls.update();
+        }
+
+        // --- FILTRES DE RECHERCHE ETENDUS ---
+        let currentSearchCategory = 'Toutes';
+
+        function renderSearchCategories() {
+            const categories = ['Toutes', 'Outillage', 'Décorations', 'Vêtements', 'Souvenirs', 'Livres', 'Électronique', 'Camping', 'Autre'];
+            const container = document.getElementById('category-filter-buttons');
+            container.innerHTML = categories.map(cat => `
+                <button onclick="setSearchCategory('${cat}')" class="px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                    currentSearchCategory === cat 
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold' 
+                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800'
+                }">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        function setSearchCategory(cat) {
+            currentSearchCategory = cat;
+            renderSearchCategories();
+            handleSearch();
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            const selectedLevel = document.getElementById('filter-level-select').value;
+            const selectedMember = document.getElementById('filter-member-select').value;
+            const resultsGrid = document.getElementById('search-results-grid');
+
+            const filtered = crates.filter(crate => {
+                const matchCategory = (currentSearchCategory === 'Toutes' || crate.category === currentSearchCategory);
+                const matchLevel = (selectedLevel === 'Tous' || (crate.level || 0).toString() === selectedLevel);
+                const matchMember = (selectedMember === 'Tous' || crate.member === selectedMember);
+                const matchText = query === '' || 
+                    crate.title.toLowerCase().includes(query) ||
+                    crate.code.toLowerCase().includes(query) ||
+                    crate.member.toLowerCase().includes(query) ||
+                    (crate.notes && crate.notes.toLowerCase().includes(query)) ||
+                    crate.items.some(item => item.toLowerCase().includes(query));
+
+                return matchCategory && matchLevel && matchMember && matchText;
+            });
+
+            document.getElementById('search-results-count').textContent = `${filtered.length} caisse(s) trouvée(s)`;
+
+            if (filtered.length === 0) {
+                resultsGrid.innerHTML = `
+                    <div class="col-span-full text-center py-12 glass-panel rounded-2xl space-y-3">
+                        <i data-lucide="package-search" class="w-12 h-12 text-slate-600 mx-auto"></i>
+                        <p class="text-slate-400 text-sm">Aucune caisse ne correspond aux filtres appliqués.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            resultsGrid.innerHTML = filtered.map(crate => `
+                <div class="glass-panel p-5 rounded-xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-mono bg-slate-900 text-amber-400 px-2 py-0.5 rounded border border-slate-800">${crate.code}</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20">Niveau ${crate.level || 0}</span>
+                        </div>
+                        <h3 class="font-bold text-white text-base">${crate.title}</h3>
+                        <div class="text-xs text-slate-400 flex items-center justify-between">
+                            <span>📍 X: ${crate.x}, Y: ${crate.y}</span>
+                            <span>📦 ${crate.type || 'Carton'}</span>
+                        </div>
+                        
+                        <div class="pt-2">
+                            <span class="text-xs font-semibold text-slate-400 block mb-1">Contenu :</span>
+                            <ul class="text-xs text-slate-300 space-y-1 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80">
+                                ${crate.items.slice(0, 3).map(item => `<li class="truncate">• ${item}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 pt-2 border-t border-slate-800/60">
+                        <button onclick='locateIn3D(${JSON.stringify(crate)})' class="flex-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-medium py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            Voir 3D
+                        </button>
+                        <button onclick='openCrateDetailsById("${crate.id}")' class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium py-2 px-3 rounded-lg transition-all">
+                            Détails
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        // --- GLISSER-DEPOSER 2D (DRAG AND DROP) ---
+        function render2DGrid() {
+            const container = document.getElementById('grid-2d-container');
+            container.className = `grid grid-cols-10 gap-1.5 flex-1 bg-slate-950 p-3 rounded-xl border border-slate-800`;
+            container.innerHTML = '';
+
+            for (let y = 0; y < GRID_Y; y++) {
+                for (let x = 0; x < GRID_X; x++) {
+                    const isTrap = isTrapSlot(x, y);
+                    const cratesAtSlot = crates.filter(c => c.x === x && c.y === y).sort((a,b) => (a.level || 0) - (b.level || 0));
+                    const isSelected = selected2DSlot && selected2DSlot.x === x && selected2DSlot.y === y;
+
+                    const cell = document.createElement('div');
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    
+                    if (isTrap) {
+                        cell.className = `h-16 rounded-lg border border-rose-800/80 bg-rose-950/40 p-1 flex flex-col justify-between cursor-not-allowed text-rose-300`;
+                        cell.innerHTML = `<div class="text-[9px] text-rose-500 font-mono">(${x},${y})</div><div class="text-[10px] font-bold text-center text-rose-400">TRAPPE</div>`;
+                    } else {
+                        const hasCrates = cratesAtSlot.length > 0;
+                        const topCrate = hasCrates ? cratesAtSlot[cratesAtSlot.length - 1] : null;
+
+                        cell.className = `h-16 rounded-lg border p-1 flex flex-col justify-between cursor-pointer transition-all ${
+                            isSelected 
+                            ? 'border-blue-400 bg-blue-500/20 ring-2 ring-blue-400' 
+                            : hasCrates 
+                                ? 'bg-amber-500/20 border-amber-500/50 hover:bg-amber-500/30' 
+                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
+                        }`;
+
+                        if (topCrate) {
+                            cell.draggable = true;
+                            cell.ondragstart = (e) => {
+                                draggedCrateId = topCrate.id;
+                                e.dataTransfer.setData('text/plain', topCrate.id);
+                            };
+                        }
+
+                        cell.ondragover = (e) => e.preventDefault();
+                        cell.ondrop = (e) => {
+                            e.preventDefault();
+                            if (draggedCrateId) {
+                                moveCrateToSlot(draggedCrateId, x, y);
+                                draggedCrateId = null;
+                            }
+                        };
+
+                        cell.innerHTML = `
+                            <div class="flex justify-between items-center text-[9px] text-slate-500 font-mono">
+                                <span>(${x},${y})</span>
+                                ${hasCrates ? `<span class="bg-amber-500 text-slate-950 font-bold px-1 rounded text-[8px]">${cratesAtSlot.length}</span>` : ''}
+                            </div>
+                            <div class="text-[11px] font-medium text-slate-200 truncate">
+                                ${topCrate ? topCrate.title : '<span class="text-slate-600">Libre</span>'}
+                            </div>
+                        `;
+
+                        cell.onclick = () => select2DSlot(x, y, cratesAtSlot);
+                    }
+
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function moveCrateToSlot(crateId, targetX, targetY) {
+            if (isTrapSlot(targetX, targetY)) {
+                alert("Impossible de déplacer une caisse sur la trappe d'accès.");
+                return;
+            }
+
+            const crate = crates.find(c => c.id === crateId);
+            if (!crate) return;
+
+            const cratesAtTarget = crates.filter(c => c.x === targetX && c.y === targetY && c.id !== crateId);
+            const targetLevel = cratesAtTarget.length;
+            const maxAllowed = getMaxLevelForSlot(targetY);
+
+            if (targetLevel >= maxAllowed) {
+                alert(`L'emplacement (${targetX}, ${targetY}) est plein (Hauteur max : ${maxAllowed}).`);
+                return;
+            }
+
+            crate.x = targetX;
+            crate.y = targetY;
+            crate.level = targetLevel;
+
+            addLogEntry(`Déplacement : Caisse ${crate.code} glissée vers X:${targetX}, Y:${targetY} (Niv. ${targetLevel}).`);
+            saveData();
+            render2DGrid();
+            render3DObjects();
+            renderStatsDashboard();
+        }
+
+        // --- IMPRESSION ETIQUETTES ET QR CODES ---
+        function printCrateLabel() {
+            if (!activeCrateId) return;
+            const crate = crates.find(c => c.id === activeCrateId);
+            if (!crate) return;
+
+            document.getElementById('print-code').textContent = crate.code;
+            document.getElementById('print-title').textContent = crate.title;
+            document.getElementById('print-location').textContent = `Emplacement : X:${crate.x}, Y:${crate.y} (Niv. ${crate.level || 0})`;
+            document.getElementById('print-type').textContent = crate.type || 'Carton';
+            document.getElementById('print-member').textContent = crate.member;
+
+            const itemsElem = document.getElementById('print-items');
+            itemsElem.innerHTML = crate.items.map(item => `<li>${item}</li>`).join('');
+
+            // Génération d'un QR Code scannable valide contenant l'identifiant / code de la caisse
+            const qrContainer = document.getElementById('print-qr-code');
+            qrContainer.innerHTML = '';
+            
+            const qrCanvas = document.createElement('canvas');
+            qrCanvas.className = 'w-full h-full';
+            qrContainer.appendChild(qrCanvas);
+
+            const qrText = crate.code;
+            
+            // Génération QR Code via API dynamique lisible instantanément par la caméra
+            const qrImg = new Image();
+            qrImg.crossOrigin = 'Anonymous';
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrText)}`;
+            qrImg.onload = function() {
+                const ctx = qrCanvas.getContext('2d');
+                qrCanvas.width = 150;
+                qrCanvas.height = 150;
+                ctx.drawImage(qrImg, 0, 0);
+            };
+
+            document.getElementById('modal-qr-print').classList.remove('hidden');
+        }
+
+        // --- SCANNER DE QR CODE (CAMERA) ---
+        let html5QrCodeScanner = null;
+
+        function openScannerModal() {
+            document.getElementById('modal-qr-scanner').classList.remove('hidden');
+            const feedback = document.getElementById('scanner-feedback');
+            feedback.textContent = "Initialisation de la caméra...";
+
+            setTimeout(() => {
+                if (!html5QrCodeScanner) {
+                    html5QrCodeScanner = new Html5Qrcode("qr-reader");
+                }
+
+                html5QrCodeScanner.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    (decodedText) => {
+                        // QR Code détecté
+                        feedback.textContent = `Scanné avec succès : ${decodedText}`;
+                        onQRCodeScanned(decodedText);
+                    },
+                    (errorMessage) => {
+                        // scan en cours...
+                    }
+                ).then(() => {
+                    feedback.textContent = "Recherche d'un QR Code...";
+                }).catch(err => {
+                    console.error("Erreur caméra :", err);
+                    feedback.textContent = "Impossible d'accéder à la caméra. Vérifiez les autorisations de votre navigateur.";
+                });
+            }, 300);
+        }
+
+        function closeScannerModal() {
+            if (html5QrCodeScanner) {
+                html5QrCodeScanner.stop().then(() => {
+                    document.getElementById('modal-qr-scanner').classList.add('hidden');
+                }).catch(() => {
+                    document.getElementById('modal-qr-scanner').classList.add('hidden');
+                });
+            } else {
+                document.getElementById('modal-qr-scanner').classList.add('hidden');
+            }
+        }
+
+        function onQRCodeScanned(codeText) {
+            closeScannerModal();
+            const cleanCode = codeText.trim().toUpperCase();
+            
+            // Recherche de la caisse correspondant au code scanné (ex: C-01, C-02...)
+            const matchedCrate = crates.find(c => c.code.toUpperCase() === cleanCode || c.id === cleanCode);
+
+            if (matchedCrate) {
+                openCrateDetails(matchedCrate);
+            } else {
+                alert(`Aucune caisse trouvée dans le grenier pour le code scanné : "${codeText}"`);
+            }
+        }
+
+        function closePrintModal() {
+            document.getElementById('modal-qr-print').classList.add('hidden');
+        }
+
+        function triggerPrint() {
+            window.print();
+        }
+
+        // --- EXPORTATION ET IMPORTATION DES DONNEES ---
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(crates, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `inventaire_grenier_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function exportDataCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Code;Titre;Categorie;Type;Membre;X;Y;Niveau;Objets;Notes\n";
+            crates.forEach(c => {
+                const itemsClean = c.items.join(" | ").replace(/;/g, ",");
+                csvContent += `${c.code};"${c.title}";${c.category};${c.type || 'Carton'};${c.member};${c.x};${c.y};${c.level || 0};"${itemsClean}";"${c.notes || ''}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `inventaire_grenier_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        // --- NAVIGATION ONGLETS ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-amber-600', 'text-white', 'shadow-md');
+                btn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+            });
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800');
+                activeBtn.classList.add('bg-amber-600', 'text-white', 'shadow-md');
+            }
+
+            if (tabId === '3d') {
+                setTimeout(onWindowResize, 50);
+            } else if (tabId === 'search') {
+                renderSearchCategories();
+                handleSearch();
+            } else if (tabId === 'plan') {
+                render2DGrid();
+            } else if (tabId === 'stats') {
+                renderStatsDashboard();
+            }
+        }
+
+        // --- PLAN 2D AVEC TRAPPE ET EMPILAGE ---
+        function render2DGrid() {
+            const container = document.getElementById('grid-2d-container');
+            container.innerHTML = '';
+
+            for (let y = 0; y < GRID_Y; y++) {
+                for (let x = 0; x < GRID_X; x++) {
+                    const isTrap = isTrapSlot(x, y);
+                    const cratesAtSlot = crates.filter(c => c.x === x && c.y === y).sort((a,b) => (a.level || 0) - (b.level || 0));
+                    const isSelected = selected2DSlot && selected2DSlot.x === x && selected2DSlot.y === y;
+
+                    const cell = document.createElement('div');
+                    
+                    if (isTrap) {
+                        cell.className = `h-16 rounded-lg border border-rose-800/80 bg-rose-950/40 p-1.5 flex flex-col justify-between cursor-not-allowed text-rose-300`;
+                        cell.innerHTML = `
+                            <div class="flex justify-between items-center text-[10px] text-rose-500 font-mono">
+                                <span>(${x},${y})</span>
+                                <span class="bg-rose-900/80 text-rose-200 px-1 rounded text-[8px] font-bold">TRAPPE</span>
+                            </div>
+                            <div class="text-[11px] font-bold text-center text-rose-400">Accès Grenier</div>
+                        `;
+                    } else {
+                        const hasCrates = cratesAtSlot.length > 0;
+                        const topCrate = hasCrates ? cratesAtSlot[cratesAtSlot.length - 1] : null;
+
+                        cell.className = `h-16 rounded-lg border p-1.5 flex flex-col justify-between cursor-pointer transition-all ${
+                            isSelected 
+                            ? 'border-blue-400 bg-blue-500/20 ring-2 ring-blue-400' 
+                            : hasCrates 
+                                ? 'bg-amber-500/20 border-amber-500/50 hover:bg-amber-500/30' 
+                                : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'
+                        }`;
+
+                        cell.innerHTML = `
+                            <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
+                                <span>(${x},${y})</span>
+                                ${hasCrates ? `<span class="bg-amber-500 text-slate-950 font-bold px-1 rounded text-[9px]">${cratesAtSlot.length} caisse(s)</span>` : ''}
+                            </div>
+                            <div class="text-xs font-medium text-slate-200 truncate">
+                                ${topCrate ? topCrate.title : '<span class="text-slate-600 text-[11px]">Libre</span>'}
+                            </div>
+                        `;
+
+                        cell.onclick = () => select2DSlot(x, y, cratesAtSlot);
+                    }
+
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function select2DSlot(x, y, cratesAtSlot) {
+            selected2DSlot = { x, y };
+            render2DGrid();
+
+            const detailsPanel = document.getElementById('plan-slot-details');
+            detailsPanel.classList.remove('hidden');
+
+            if (isTrapSlot(x, y)) {
+                detailsPanel.innerHTML = `
+                    <div class="text-rose-400 font-medium text-sm flex items-center gap-2">
+                        <i data-lucide="alert-triangle"></i>
+                        Emplacement (${x}, ${y}) réservé à la trappe d'accès. Impossible d'y poser du matériel.
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            const stackCount = cratesAtSlot.length;
+            const maxAllowed = getMaxLevelForSlot(y);
+
+            let cratesListHtml = '';
+            if (stackCount > 0) {
+                cratesListHtml = `
+                    <div class="space-y-2 mt-3">
+                        <h4 class="text-xs font-semibold uppercase text-slate-400">Caisses empilées sur cet emplacement :</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                            ${cratesAtSlot.map(c => `
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 flex justify-between items-center">
+                                    <div>
+                                        <span class="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Étage ${c.level || 0}</span>
+                                        <div class="text-xs font-bold text-white mt-1">${c.title}</div>
+                                        <div class="text-[10px] text-slate-500">${c.code}</div>
+                                    </div>
+                                    <button onclick='openCrateDetailsById("${c.id}")' class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs">
+                                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            detailsPanel.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <span class="text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Emplacement (${x}, ${y})</span>
+                        <h3 class="text-lg font-bold text-white mt-1">${stackCount} caisse(s) empilée(s) (Max autorisé : ${maxAllowed})</h3>
+                    </div>
+                    <div>
+                        ${stackCount < maxAllowed ? `
+                            <button onclick="openAddModal(${x}, ${y}, ${stackCount})" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg transition-all flex items-center gap-1.5 shadow-lg shadow-amber-500/20">
+                                <i data-lucide="layers" class="w-4 h-4"></i>
+                                ${stackCount === 0 ? 'Ajouter une caisse au sol' : `Empiler au niveau ${stackCount}`}
+                            </button>
+                        ` : `
+                            <span class="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-lg">Hauteur maximale atteinte</span>
+                        `}
+                    </div>
+                </div>
+                ${cratesListHtml}
+            `;
+            lucide.createIcons();
+        }
+
+        // --- DASHBOARD STATS ---
+        function renderStatsDashboard() {
+            const totalAvailableSlots = (GRID_X * GRID_Y) - TRAP_SLOTS.length;
+            const totalCrates = crates.length;
+            const occupancyPct = Math.round((totalCrates / (totalAvailableSlots * 2)) * 100);
+            const totalItems = crates.reduce((sum, c) => sum + c.items.length, 0);
+
+            document.getElementById('kpi-total-crates').textContent = totalCrates;
+            document.getElementById('kpi-occupancy').textContent = `${occupancyPct}%`;
+            document.getElementById('kpi-occupancy-bar').style.width = `${Math.min(occupancyPct, 100)}%`;
+            document.getElementById('kpi-total-items').textContent = totalItems;
+            document.getElementById('kpi-free-slots').textContent = totalAvailableSlots - crates.filter(c => c.level === 0).length;
+
+            const categoryCounts = {};
+            crates.forEach(c => {
+                categoryCounts[c.category] = (categoryCounts[c.category] || 0) + 1;
+            });
+
+            const catListContainer = document.getElementById('category-breakdown-list');
+            catListContainer.innerHTML = Object.entries(categoryCounts).map(([cat, count]) => {
+                const pct = Math.round((count / totalCrates) * 100);
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs text-slate-300 font-medium">
+                            <span>${cat}</span>
+                            <span>${count} caisse(s) (${pct}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                            <div class="bg-amber-500 h-2 rounded-full" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const logContainer = document.getElementById('activity-log-list');
+            logContainer.innerHTML = activityLogs.map(log => `
+                <div class="flex items-start gap-3 p-2.5 bg-slate-900/60 rounded-xl border border-slate-800 text-xs">
+                    <i data-lucide="clock" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                    <div>
+                        <div class="text-slate-200">${log.text}</div>
+                        <div class="text-[10px] text-slate-500 mt-0.5">${log.time}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            const tableBody = document.getElementById('inventory-table-body');
+            tableBody.innerHTML = crates.map(c => `
+                <tr class="hover:bg-slate-900/50 transition-all">
+                    <td class="py-3 px-4 font-mono text-amber-400 text-xs">${c.code}</td>
+                    <td class="py-3 px-4 font-semibold text-white">${c.title}</td>
+                    <td class="py-3 px-4 text-xs">X:${c.x}, Y:${c.y} <span class="text-slate-500 font-mono">(Niv. ${c.level || 0})</span></td>
+                    <td class="py-3 px-4 text-xs"><span class="px-2 py-0.5 bg-slate-800 rounded border border-slate-700">${c.category}</span></td>
+                    <td class="py-3 px-4 text-xs text-slate-400">${c.items.length} article(s)</td>
+                    <td class="py-3 px-4 text-xs">${c.member}</td>
+                    <td class="py-3 px-4 text-right space-x-2">
+                        <button onclick='openCrateDetailsById("${c.id}")' class="text-slate-400 hover:text-white transition-all">
+                            <i data-lucide="eye" class="w-4 h-4 inline"></i>
+                        </button>
+                        <button onclick='editCrateById("${c.id}")' class="text-amber-400 hover:text-amber-300 transition-all">
+                            <i data-lucide="edit-3" class="w-4 h-4 inline"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        // --- GESTION FORMULAIRE ET SELECTION NIV. EMPILAGE ---
+        function updateLevelOptions() {
+            const xInput = document.getElementById('form-slot-x');
+            const yInput = document.getElementById('form-slot-y');
+            const levelSelect = document.getElementById('form-level');
+            const currentCrateId = document.getElementById('form-crate-id').value;
+
+            const x = parseInt(xInput.value, 10);
+            const y = parseInt(yInput.value, 10);
+
+            if (isNaN(x) || isNaN(y)) return;
+
+            if (isTrapSlot(x, y)) {
+                alert("Cet emplacement est réservé à la TRAPPE D'ACCÈS !");
+                xInput.value = 0;
+                yInput.value = 0;
+                updateLevelOptions();
+                return;
+            }
+
+            const cratesInSlot = crates.filter(c => c.x === x && c.y === y && c.id !== currentCrateId);
+            const occupiedLevels = cratesInSlot.map(c => c.level || 0);
+
+            const maxAllowed = getMaxLevelForSlot(y);
+            levelSelect.innerHTML = '';
+
+            for (let l = 0; l < maxAllowed; l++) {
+                const isTaken = occupiedLevels.includes(l);
+                const option = document.createElement('option');
+                option.value = l;
+                option.textContent = l === 0 ? 'Au sol (Niveau 0)' : `Empilé à l'étage ${l}`;
+                if (isTaken) {
+                    option.textContent += ' [Occupé]';
+                    option.disabled = true;
+                }
+                levelSelect.appendChild(option);
+            }
+        }
+
+        function openCrateDetails(crate) {
+            activeCrateId = crate.id;
+            document.getElementById('modal-crate-code').textContent = crate.code;
+            document.getElementById('modal-crate-title').textContent = crate.title;
+            document.getElementById('modal-crate-location').innerHTML = `<i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-500"></i> Emplacement X: ${crate.x}, Y: ${crate.y}`;
+            
+            const levelBadge = document.getElementById('modal-crate-level-badge');
+            const lvl = crate.level || 0;
+            levelBadge.textContent = lvl === 0 ? 'Au sol (Niveau 0)' : `Étage ${lvl}`;
+
+            document.getElementById('modal-crate-category').textContent = crate.category;
+            document.getElementById('modal-crate-member').textContent = crate.member;
+
+            const itemsContainer = document.getElementById('modal-crate-items');
+            itemsContainer.innerHTML = crate.items.map(item => `
+                <li class="flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                    <span>${item}</span>
+                </li>
+            `).join('');
+
+            const notesElem = document.getElementById('modal-crate-notes');
+            if (crate.notes && crate.notes.trim() !== '') {
+                notesElem.textContent = crate.notes;
+                document.getElementById('modal-crate-notes-container').classList.remove('hidden');
+            } else {
+                document.getElementById('modal-crate-notes-container').classList.add('hidden');
+            }
+
+            document.getElementById('modal-crate-details').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function openCrateDetailsById(id) {
+            const crate = crates.find(c => c.id === id);
+            if (crate) openCrateDetails(crate);
+        }
+
+        function closeCrateModal() {
+            document.getElementById('modal-crate-details').classList.add('hidden');
+        }
+
+        function openAddModal(slotX = 0, slotY = 0, targetLevel = 0) {
+            if (isTrapSlot(slotX, slotY)) {
+                alert("Impossible d'ajouter une caisse sur la TRAPPE D'ACCÈS.");
+                return;
+            }
+
+            document.getElementById('crate-form').reset();
+            document.getElementById('form-crate-id').value = '';
+            document.getElementById('form-modal-title').textContent = targetLevel > 0 ? `Empiler une caisse (Étage ${targetLevel})` : 'Ajouter une nouvelle caisse';
+
+            document.getElementById('form-slot-x').value = slotX;
+            document.getElementById('form-slot-y').value = slotY;
+
+            updateLevelOptions();
+            document.getElementById('form-level').value = targetLevel;
+
+            document.getElementById('modal-add-crate').classList.remove('hidden');
+        }
+
+        function closeAddModal() {
+            document.getElementById('modal-add-crate').classList.add('hidden');
+        }
+
+        function editCrateById(id) {
+            closeCrateModal();
+            const crate = crates.find(c => c.id === id);
+            if (!crate) return;
+
+            document.getElementById('form-modal-title').textContent = `Modifier ${crate.code}`;
+            document.getElementById('form-crate-id').value = crate.id;
+            document.getElementById('form-title').value = crate.title;
+            document.getElementById('form-category').value = crate.category;
+            document.getElementById('form-type').value = crate.type || 'Carton';
+            document.getElementById('form-member').value = crate.member;
+            document.getElementById('form-slot-x').value = crate.x;
+            document.getElementById('form-slot-y').value = crate.y;
+            
+            updateLevelOptions();
+            document.getElementById('form-level').value = crate.level || 0;
+
+            document.getElementById('form-color').value = crate.color || '#d97706';
+            document.getElementById('form-items').value = crate.items.join('\n');
+            document.getElementById('form-notes').value = crate.notes || '';
+
+            document.getElementById('modal-add-crate').classList.remove('hidden');
+        }
+
+        function saveCrateForm(event) {
+            event.preventDefault();
+
+            try {
+                const crateId = document.getElementById('form-crate-id').value;
+                const title = document.getElementById('form-title').value.trim();
+                const category = document.getElementById('form-category').value;
+                const type = document.getElementById('form-type').value;
+                const member = document.getElementById('form-member').value.trim();
+                const x = parseInt(document.getElementById('form-slot-x').value, 10);
+                const y = parseInt(document.getElementById('form-slot-y').value, 10);
+                const level = parseInt(document.getElementById('form-level').value, 10);
+                const color = document.getElementById('form-color').value;
+                const itemsRaw = document.getElementById('form-items').value;
+                const notes = document.getElementById('form-notes').value.trim();
+
+                if (isTrapSlot(x, y)) {
+                    alert("Erreur : La trappe d'accès ne peut pas être utilisée.");
+                    return;
+                }
+
+                const items = itemsRaw.split('\n').map(i => i.trim()).filter(i => i.length > 0);
+
+                if (crateId) {
+                    const crate = crates.find(c => c.id === crateId);
+                    if (crate) {
+                        crate.title = title;
+                        crate.category = category;
+                        crate.type = type;
+                        crate.member = member;
+                        crate.x = x;
+                        crate.y = y;
+                        crate.level = level;
+                        crate.color = color;
+                        crate.items = items.length > 0 ? items : ['Aucun détail renseigné'];
+                        crate.notes = notes;
+
+                        addLogEntry(`Caisse ${crate.code} mise à jour (${type}) par ${member}.`);
+                    }
+                } else {
+                    const newCode = `C-${(crates.length + 1).toString().padStart(2, '0')}`;
+                    const newCrate = {
+                        id: 'crate-' + Date.now(),
+                        code: newCode,
+                        title,
+                        category,
+                        type,
+                        member,
+                        x, y, level,
+                        color,
+                        items: items.length > 0 ? items : ['Aucun détail renseigné'],
+                        notes
+                    };
+                    crates.push(newCrate);
+                    addLogEntry(`Nouvelle caisse ${newCode} (${type}) ajoutée par ${member}.`);
+                }
+
+                saveData();
+                closeAddModal();
+                render3DObjects();
+                render2DGrid();
+                renderStatsDashboard();
+            } catch (err) {
+                console.error("Erreur lors de la sauvegarde :", err);
+                alert("Une erreur est survenue lors de l'enregistrement de la caisse.");
+            }
+        }
+
+        // --- INIT ---
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+
+            // Scène
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020617);
+
+            // Caméra
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 6, 9);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0.5, 0);
+
+            // Raycaster pour clics 3D
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Éclairage
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffedd5, 0.8);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0xf59e0b, 0.5, 15);
+            pointLight.position.set(0, 2.2, 0);
+            scene.add(pointLight);
+
+            // Construction du grenier et des caisses
+            buildAtticStructure();
+            render3DObjects();
+
+            // Événements
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('pointerdown', onDocumentPointerDown);
+
+            // Démarrage boucle de rendu
+            animate();
+        }
+
+        window.onload = function() {
+            initData();
+            init3D();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
