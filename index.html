@@ -15,6 +15,85 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase Cloud Storage SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuration et initialisation Firebase Cloud
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'grenier-3d-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            window.dbInstance = db;
+            window.appId = appId;
+
+            const initCloudAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (e) {
+                    console.error("Erreur d'authentification Cloud", e);
+                }
+            };
+
+            initCloudAuth();
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    // Écoute des données Cloud en temps réel
+                    const publicCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'crates');
+                    onSnapshot(publicCollectionRef, (snapshot) => {
+                        let cloudCrates = [];
+                        snapshot.forEach((docSnap) => {
+                            cloudCrates.push({ id: docSnap.id, ...docSnap.data() });
+                        });
+
+                        if (cloudCrates.length > 0) {
+                            window.crates = cloudCrates;
+                            if (typeof window.render3DObjects === 'function') window.render3DObjects();
+                            if (typeof window.render2DGrid === 'function') window.render2DGrid();
+                            if (typeof window.renderStatsDashboard === 'function') window.renderStatsDashboard();
+                        } else if (window.crates && window.crates.length > 0) {
+                            // Envoi initial des caisses par défaut sur le cloud s'il est vide
+                            window.crates.forEach(crate => window.saveCrateToCloud(crate));
+                        }
+                    }, (err) => console.error("Erreur synchronisation Cloud :", err));
+                }
+            });
+
+            window.saveCrateToCloud = async (crate) => {
+                if (!auth.currentUser) return;
+                try {
+                    const crateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'crates', crate.id);
+                    await setDoc(crateDocRef, crate);
+                } catch (e) {
+                    console.error("Erreur d'enregistrement Cloud", e);
+                }
+            };
+
+            window.deleteCrateFromCloud = async (crateId) => {
+                if (!auth.currentUser) return;
+                try {
+                    const { deleteDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                    const crateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'crates', crateId);
+                    await deleteDoc(crateDocRef);
+                } catch (e) {
+                    console.error("Erreur de suppression Cloud", e);
+                }
+            };
+        }
+    </script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -685,6 +764,18 @@
         let selected2DSlot = null;
         let draggedCrateId = null;
 
+        // --- EXPLICATION DU PROBLÈME DE SYNCHRONISATION INTER-APPAREILS ---
+        /*
+          Actuellement, l'application utilise 'localStorage' pour stocker les données.
+          Le 'localStorage' est propre à chaque navigateur et chaque appareil :
+          les données créées sur un téléphone restent sur ce téléphone et ne sont pas
+          visibles depuis un ordinateur ou un autre téléphone.
+
+          Pour que votre site hébergé sur GitHub Pages soit synchronisé en temps réel
+          sur tous vos appareils, les données doivent être stockées dans une base de données Cloud
+          (par exemple Firebase Firestore, Supabase, ou un serveur backend).
+        */
+
         // --- CHARGEMENT INITIAL ---
         function initData() {
             const localData = localStorage.getItem('grenier_crates_data_v4');
@@ -706,6 +797,11 @@
         function saveData() {
             localStorage.setItem('grenier_crates_data_v4', JSON.stringify(crates));
             localStorage.setItem('grenier_logs_data_v4', JSON.stringify(activityLogs));
+            
+            // Synchronisation en temps réel avec le Cloud si disponible
+            if (window.saveCrateToCloud) {
+                crates.forEach(c => window.saveCrateToCloud(c));
+            }
         }
 
         function addLogEntry(text) {
@@ -1568,6 +1664,12 @@
 
             crates = crates.filter(c => c.id !== activeCrateId);
             addLogEntry(`Suppression : Caisse ${crate.code} (${crate.title}) retirée du grenier.`);
+            
+            // Suppression en temps réel sur le Cloud
+            if (window.deleteCrateFromCloud) {
+                window.deleteCrateFromCloud(activeCrateId);
+            }
+
             saveData();
             closeCrateModal();
             render3DObjects();
